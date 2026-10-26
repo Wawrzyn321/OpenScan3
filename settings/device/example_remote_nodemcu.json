@@ -1,0 +1,40 @@
+{
+    "name": "Mini v2 (NodeMCU Remote)",
+    "model": "mini",
+    "shield": "greenshield",
+    "nodemcu": {
+        "url": "http://192.168.0.68:9191",
+        "timeout": 5.0,
+        "poll_interval": 0.05
+    },
+    "cameras": {},
+    "motors": {
+        "rotor": {
+            "acceleration": 20000,
+            "max_speed": 5000,
+            "direction": 1,
+            "steps_per_rotation": 42667,
+            "min_angle": 12,
+            "max_angle": 125,
+            "home_angle": 90
+        },
+        "turntable": {
+            "acceleration": 5000,
+            "max_speed": 5000,
+            "direction": 1,
+            "steps_per_rotation": 3200,
+            "min_angle": 0,
+            "max_angle": 360,
+            "home_angle": 0
+        }
+    },
+    "lights": {
+        "Openscan.eu Ringlight": {
+            "pwm_support": true
+        }
+    },
+    "idle_timeout": 300.0,
+    "scan_radius_mm": 120.0,
+    "startup_mode": "startup_enabled",
+    "calibrate_mode": "calibrate_manual"
+}

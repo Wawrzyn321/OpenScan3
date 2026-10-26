@@ -73,6 +73,9 @@ class MotorController(StatefulHardware, SleepCapableHardware):
         # update model settings
         self.model.settings = settings
 
+        if self.settings.direction_pin is None:
+            raise ValueError(f"Motor '{self.model.name}' has no GPIO pins configured. Use RemoteMotorController for NodeMCU mode.")
+
         # apply to hardware
         gpio.initialize_output_pins([
             self.settings.direction_pin,
@@ -106,6 +109,8 @@ class MotorController(StatefulHardware, SleepCapableHardware):
         return self.settings.model
 
     def refresh(self):
+        if self.settings.enable_pin is None:
+            return
         if self.is_idle():
             logger.info(f"Motor '{self.model.name}' idle.")
             self._calibrated = False

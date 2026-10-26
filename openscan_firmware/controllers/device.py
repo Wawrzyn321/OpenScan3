@@ -59,9 +59,12 @@ from openscan_firmware.controllers.hardware.cameras.camera import (
     remove_camera_controller,
 )
 from openscan_firmware.controllers.hardware.motors import create_motor_controller, get_all_motor_controllers, get_motor_controller, \
-    remove_motor_controller
+    remove_motor_controller, _motor_registry
 from openscan_firmware.controllers.hardware.lights import create_light_controller, get_all_light_controllers, remove_light_controller, \
-    get_light_controller
+    get_light_controller, _light_registry
+from openscan_firmware.controllers.hardware.remote_motors import RemoteMotorController
+from openscan_firmware.controllers.hardware.remote_lights import RemoteLightController
+from openscan_firmware.config.remote import NodeMCUConfig
 from openscan_firmware.controllers.hardware.triggers import (
     create_trigger_controller,
     get_all_trigger_controllers,
@@ -125,6 +128,8 @@ BASE_DIR = pathlib.Path(__file__).parent.parent.parent
 SETTINGS_DIR = resolve_settings_dir("device")
 DEVICE_CONFIG_FILE = resolve_settings_file("device", "device_config.json")
 
+_nodemcu_config: "NodeMCUConfig | None" = None
+
 
 def _runtime_to_persisted_config() -> ScannerDeviceConfig:
     return ScannerDeviceConfig(
@@ -151,6 +156,7 @@ def _runtime_to_persisted_config() -> ScannerDeviceConfig:
         scan_radius_mm=_scanner_device.scan_radius_mm,
         startup_mode=_scanner_device.startup_mode.value if _scanner_device.startup_mode else None,
         calibrate_mode=_scanner_device.calibrate_mode.value if _scanner_device.calibrate_mode else None,
+        nodemcu=_nodemcu_config,
     )
 
 
@@ -648,16 +654,24 @@ async def _initialize_with_config(config: dict | ScannerDeviceConfig, detect_cam
         except Exception as e:
             logger.error(f"Error initializing camera controller for {name}: {e}")
 
+    global _nodemcu_config
+    nodemcu_config = NodeMCUConfig(**config_dict["nodemcu"]) if config_dict.get("nodemcu") else None
+    _nodemcu_config = nodemcu_config
+
     for name, motor in motor_objects.items():
         try:
-            controller = create_motor_controller(motor)
+            if nodemcu_config:
+                controller = RemoteMotorController(motor, nodemcu_config)
+                _motor_registry[name] = controller
+            else:
+                controller = create_motor_controller(motor)
             controller.set_idle_callbacks(is_idle, handle_idle_event)
         except Exception as e:
             logger.error(f"Error initializing motor controller for {name}: {e}")
 
-    # Create endstop objects
+    # Create endstop objects (skipped in remote/NodeMCU mode — endstops handled on NodeMCU)
     endstop_objects = {}
-    if "endstops" in config_dict:
+    if not nodemcu_config and "endstops" in config_dict:
         for endstop_name in config_dict["endstops"]:
             try:
                 settings = _load_endstop_config(config_dict["endstops"][endstop_name]["settings"])
@@ -675,7 +689,11 @@ async def _initialize_with_config(config: dict | ScannerDeviceConfig, detect_cam
 
     for name, light in light_objects.items():
         try:
-            controller = create_light_controller(light)
+            if nodemcu_config:
+                controller = RemoteLightController(light, nodemcu_config)
+                _light_registry[name] = controller
+            else:
+                controller = create_light_controller(light)
             controller.set_idle_callbacks(is_idle, handle_idle_event)
         except Exception as e:
             logger.error(f"Error initializing light controller for {name}: {e}")

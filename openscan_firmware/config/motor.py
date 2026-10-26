@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Literal, Self
+from typing import Literal, Optional, Self
 
 
 class MotorConfig(BaseModel):
-    direction_pin: int = Field(description="GPIO pin controlling the motor direction signal.")
-    enable_pin: int = Field(description="GPIO pin toggling the motor driver enable line.")
-    step_pin: int = Field(description="GPIO pin used to emit step pulses.")
+    direction_pin: Optional[int] = Field(default=None, description="GPIO pin controlling the motor direction signal. None in remote (NodeMCU) mode.")
+    enable_pin: Optional[int] = Field(default=None, description="GPIO pin toggling the motor driver enable line. None in remote (NodeMCU) mode.")
+    step_pin: Optional[int] = Field(default=None, description="GPIO pin used to emit step pulses. None in remote (NodeMCU) mode.")
 
     acceleration: int = Field(20000, ge=1000, le=80000, description="Acceleration in steps/s², Limits tested on Rpi 4 2GB under full load --> time estimation within 0.5%")
     max_speed: int = Field(5000, ge=1, le=7500, description="Steps per second, Limits tested on RPi 4 2GB under full load --> time estimation within 0.5%")
@@ -16,6 +16,13 @@ class MotorConfig(BaseModel):
     min_angle: float = Field(0, ge=0, le=360, description="Minimum allowed angle for the motor in degrees.")
     max_angle: float = Field(360, ge=0, le=360, description="Maximum allowed angle for the motor in degrees.")
     home_angle: float = Field(90, ge=0, le=360, description="Angle for home position in degrees.")
+
+    @model_validator(mode='after')
+    def check_pins(self) -> Self:
+        pins = [self.direction_pin, self.enable_pin, self.step_pin]
+        if not (all(p is None for p in pins) or all(p is not None for p in pins)):
+            raise ValueError("direction_pin, enable_pin, and step_pin must all be set or all be None (remote mode).")
+        return self
 
     @model_validator(mode='after')
     def check_angles(self) -> Self:

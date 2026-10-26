@@ -7,6 +7,7 @@ from openscan_firmware.config.camera import CameraSettings
 from openscan_firmware.config.endstop import EndstopConfig
 from openscan_firmware.config.light import LightConfig
 from openscan_firmware.config.motor import MotorConfig
+from openscan_firmware.config.remote import NodeMCUConfig
 from openscan_firmware.config.trigger import TriggerConfig
 from openscan_firmware.models.camera import Camera, CameraType
 from openscan_firmware.models.light import Light
@@ -94,6 +95,7 @@ class ScannerDeviceConfig(BaseModel):
     lights: dict[str, LightConfig] = Field(default_factory=dict)
     triggers: dict[str, TriggerConfig] = Field(default_factory=dict)
     endstops: dict[str, PersistedEndstopConfig] | None = None
+    nodemcu: NodeMCUConfig | None = None
     idle_timeout: float = 0.0
     motors_timeout: float | None = None
     scan_radius_mm: float = Field(
